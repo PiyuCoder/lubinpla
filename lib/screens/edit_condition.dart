@@ -1,44 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:lubinpla/components/project/date_selector.dart';
 
-class TurningRateExplainScreen extends StatefulWidget {
+class EditConditionScreen extends StatefulWidget {
   final String condition;
+  final String initialDetail;
 
-  const TurningRateExplainScreen({super.key, required this.condition});
+  const EditConditionScreen({
+    super.key,
+    required this.condition,
+    required this.initialDetail,
+  });
 
   @override
-  _TurningRateExplainScreenState createState() =>
-      _TurningRateExplainScreenState();
+  _EditConditionScreenState createState() => _EditConditionScreenState();
 }
 
-class _TurningRateExplainScreenState extends State<TurningRateExplainScreen> {
-  final TextEditingController explainController = TextEditingController();
+class _EditConditionScreenState extends State<EditConditionScreen> {
+  late TextEditingController detailController;
 
-  bool _isNextDisabled = true;
+  bool _isSaveDisabled = true;
 
   @override
   void initState() {
-    explainController.addListener(_checkFields);
     super.initState();
+    detailController = TextEditingController(text: widget.initialDetail);
+    detailController.addListener(_checkFields);
   }
 
   @override
   void dispose() {
-    explainController.dispose();
+    detailController.dispose();
     super.dispose();
   }
 
-  void gotoNext() {
-    final explaination = explainController.text;
-    Navigator.pop(context, explaination);
+  void _checkFields() {
+    setState(() {
+      _isSaveDisabled = detailController.text.trim().isEmpty;
+    });
   }
 
-  void _checkFields() {
-    if (explainController.text.isNotEmpty) {
-      setState(() {
-        _isNextDisabled = false;
-      });
-    }
+  void _saveAndExit() {
+    final updatedDetail = detailController.text.trim();
+    Navigator.pop(context, updatedDetail);
   }
 
   @override
@@ -46,10 +48,9 @@ class _TurningRateExplainScreenState extends State<TurningRateExplainScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          style: IconButton.styleFrom(overlayColor: Colors.transparent),
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () {
-            Navigator.pop(context); // Go back to the previous screen
+            Navigator.pop(context); // Navigate back without saving
           },
         ),
         title: Padding(
@@ -76,16 +77,12 @@ class _TurningRateExplainScreenState extends State<TurningRateExplainScreen> {
         ),
         actions: [
           TextButton(
-            style: TextButton.styleFrom(overlayColor: Colors.transparent),
-            onPressed: () {
-              if (!_isNextDisabled) gotoNext();
-            },
+            onPressed: !_isSaveDisabled ? _saveAndExit : null,
             child: Text(
-              '다음',
+              "완료",
               style: TextStyle(
-                  color: !_isNextDisabled
-                      ? Colors.black
-                      : Colors.grey), // You can change color as needed
+                color: !_isSaveDisabled ? Colors.black : Colors.grey,
+              ),
             ),
           ),
         ],
@@ -93,24 +90,23 @@ class _TurningRateExplainScreenState extends State<TurningRateExplainScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
             TextField(
-              controller: explainController,
-              maxLines: 22, // Number of lines to simulate a textarea
+              controller: detailController,
+              maxLines: 20,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey.shade100,
-                hintText: "입력해주세요",
-                alignLabelWithHint:
-                    true, // Align label to the top-left for multi-line fields
+                hintText: "Enter explanation here",
                 border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(8.0), // Optional rounded corners
+                  borderRadius: BorderRadius.circular(8.0),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 12.0,
-                  horizontal: 16.0, // Padding for a spacious feel
+                  horizontal: 16.0,
                 ),
               ),
             ),

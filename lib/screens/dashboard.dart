@@ -1,9 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:lubinpla/components/dashboard/project_screen.dart';
 import 'package:lubinpla/helpers/pref_data.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-class Dashboard extends StatelessWidget {
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
+
+  @override
+  _DashboardState createState() => _DashboardState();
+}
+
+class _DashboardState extends State<Dashboard> {
+  bool isLoading = true;
+  String? errorMessage;
+
+  Future<void> fetchUserInfo() async {
+    const String apiUrl = 'http://15.165.115.39:8080/api/users/me';
+    String? token = await getSavedData('token'); // Assume `getSavedData` exists
+
+    try {
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final email = responseData['email'];
+        final companyName = responseData['companyName'];
+        final designation = responseData['companyResponsibility'];
+        print(email);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', email);
+        await prefs.setString('companyName', companyName);
+        await prefs.setString('designation', designation);
+
+        setState(() {
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to fetch user data: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error occurred: $e';
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserInfo();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +86,27 @@ class Dashboard extends StatelessWidget {
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           elevation: 0,
           showUnselectedLabels: true,
-          backgroundColor: Colors.white, // Background color
-          selectedItemColor: Colors.black, // Selected item color
-          unselectedItemColor: Colors.black26, // Unselected item color
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.black26,
         ),
       ),
-      home: HomeScreen(
-        currentIndex: 0,
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Dashboard'),
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : errorMessage != null
+                ? Center(
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  )
+                : HomeScreen(
+                    currentIndex: 0,
+                  ),
       ),
     );
   }

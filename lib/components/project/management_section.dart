@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ManagementSection extends StatefulWidget {
   final SectionData data;
+  final bool editingMode;
   final ValueChanged<SectionData> onDataChanged;
   final Function(String field, List<Map<String, String>> selectedUsers)
       onUserSelected;
@@ -16,6 +17,7 @@ class ManagementSection extends StatefulWidget {
     required this.data,
     required this.onDataChanged,
     required this.onUserSelected,
+    required this.editingMode,
   });
 
   @override
@@ -27,6 +29,8 @@ class _ManagementSectionState extends State<ManagementSection> {
   late TextEditingController _ownerController;
   late TextEditingController _collaboratorController;
   late TextEditingController _shareController;
+
+  String? _selectedProjectImage; // Holds the path of the selected image
 
   bool isLoading = true;
 
@@ -41,7 +45,8 @@ class _ManagementSectionState extends State<ManagementSection> {
 
     _projectNameController =
         TextEditingController(text: widget.data.projectName);
-    _ownerController = TextEditingController(text: givenName);
+    _ownerController =
+        TextEditingController(text: widget.data.owner?['name'] ?? '');
     _collaboratorController = TextEditingController(
         text: widget.data.collaborator?['name'] ?? ''); // Display name only
     _shareController = TextEditingController(
@@ -60,7 +65,7 @@ class _ManagementSectionState extends State<ManagementSection> {
       _projectNameController.text = widget.data.projectName;
     }
     if (oldWidget.data.owner != widget.data.owner) {
-      _ownerController.text = widget.data.owner;
+      _ownerController.text = widget.data.owner?['name'] ?? '';
     }
     if (oldWidget.data.collaborator != widget.data.collaborator) {
       _collaboratorController.text = widget.data.collaborator?['name'] ?? '';
@@ -69,6 +74,42 @@ class _ManagementSectionState extends State<ManagementSection> {
       _shareController.text =
           widget.data.share.map((user) => user['name']).join(', ');
     }
+  }
+
+  Future<String?> _showImageSelectionModal(BuildContext context) async {
+    final List<String> images = [
+      'assets/project_image1.png',
+      'assets/project_image2.png',
+      'assets/project_image3.png',
+      // Add more image paths
+    ];
+
+    return await showModalBottomSheet<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return GridView.builder(
+          padding: const EdgeInsets.all(16.0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 16.0,
+            mainAxisSpacing: 16.0,
+          ),
+          itemCount: images.length,
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.pop(context, images[index]);
+              },
+              child: CircleAvatar(
+                radius: 40,
+                backgroundImage: AssetImage(images[index]),
+                backgroundColor: Colors.grey.shade300,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -100,56 +141,96 @@ class _ManagementSectionState extends State<ManagementSection> {
                   }
                 },
                 hintText: '입력해주세요',
+                // prefixIcon: GestureDetector(
+                //   onTap: () async {
+                //     final selectedImage =
+                //         await _showImageSelectionModal(context);
+                //     if (selectedImage != null) {
+                //       setState(() {
+                //         _selectedProjectImage = selectedImage;
+                //       });
+                //     }
+                //   },
+                //   child: CircleAvatar(
+                //     radius: 20,
+                //     backgroundImage: _selectedProjectImage != null
+                //         ? AssetImage(_selectedProjectImage!)
+                //         : const AssetImage('assets/logo.png'),
+                //     backgroundColor: Colors.grey.shade300,
+                //   ),
+                // ),
               ),
 
-              // Owner Field
               _buildField(
                 label: '담당자 *',
                 controller: _ownerController
-                  ..text = '', // Clear controller text
-                onTap: () {},
+                  ..text = widget.data.owner == null
+                      ? ''
+                      : '', // Ensure no visible text in the field
+                onTap: () async {
+                  final selectedUser =
+                      await Navigator.push<Map<String, String>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserSearchScreen(
+                        userType: 'owner',
+                        onUserSelected: (user) {
+                          widget.onDataChanged(
+                              widget.data.copyWith(owner: user.first));
+                        },
+                        initialSelectedUsers:
+                            widget.editingMode && widget.data.owner != null
+                                ? [
+                                    widget.data.owner!
+                                  ] // Pass the current owner if in editing mode
+                                : [], // No initial owner if not in editing mode
+                      ),
+                    ),
+                  );
+                  if (selectedUser != null) {
+                    widget.onDataChanged(
+                      widget.data.copyWith(owner: selectedUser),
+                    );
+                  }
+                },
                 hintText: widget.data.owner == null
                     ? 'Choose an Owner'
-                    : '', // Hide hint when owner is selected
-                prefixIcon: FutureBuilder(
-                  future: _getOwnerDetailsFromPrefs(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
-                    }
-
-                    if (snapshot.hasData && widget.data.owner != null) {
-                      final ownerData = snapshot.data as Map<String, String>;
-                      final profilePic = ownerData['profilePic'] ??
-                          ''; // Retrieve profilePic, fallback to empty if null
-
-                      return Row(
+                    : '', // Show hint only when no owner is selected
+                prefixIcon: widget.data.owner != null
+                    ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           CircleAvatar(
-                            backgroundImage: profilePic.isNotEmpty
-                                ? NetworkImage(profilePic)
-                                : AssetImage('assets/default_profile_pic.png'),
-                            radius:
-                                18, // Radius of the CircleAvatar, adjust as needed
-                            backgroundColor: Colors.grey.shade100,
+                            backgroundImage: NetworkImage(
+                              widget.data.owner!['profilePic'] ?? '',
+                            ),
+                            radius: 20,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            '${ownerData['givenName']} ${ownerData['surname']}', // Full name
-                            style: const TextStyle(
-                              color: Colors.black, // Set text color to black
-                              fontSize: 16,
-                            ),
-                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.data.owner!['name'] ?? 'Unknown',
+                                style: const TextStyle(
+                                    color:
+                                        Colors.black, // Set text color to black
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                widget.data.owner!['role'] ?? 'Designation',
+                                style: const TextStyle(
+                                  color:
+                                      Colors.black38, // Set text color to black
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          )
                         ],
-                      );
-                    }
-
-                    return SizedBox
-                        .shrink(); // Show nothing if data isn't ready
-                  },
-                ),
+                      )
+                    : null,
               ),
 
               // Collaborator Field
@@ -198,13 +279,28 @@ class _ManagementSectionState extends State<ManagementSection> {
                             radius: 20,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            widget.data.collaborator!['name'] ?? 'Unknown',
-                            style: const TextStyle(
-                              color: Colors.black, // Set text color to black
-                              fontSize: 16,
-                            ),
-                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.data.collaborator!['name'] ?? 'Unknown',
+                                style: const TextStyle(
+                                    color:
+                                        Colors.black, // Set text color to black
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                widget.data.collaborator!['role'] ??
+                                    'Designation',
+                                style: const TextStyle(
+                                  color:
+                                      Colors.black38, // Set text color to black
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          )
                         ],
                       )
                     : null,
@@ -251,9 +347,23 @@ class _ManagementSectionState extends State<ManagementSection> {
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    user['name'] ?? 'Unknown',
-                                    style: const TextStyle(fontSize: 16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user['name'] ?? 'Unknown',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                      Text(
+                                        user['role'] ?? 'Designation',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.black38),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -282,6 +392,7 @@ class _ManagementSectionState extends State<ManagementSection> {
         GestureDetector(
           onTap: onTap,
           child: TextFormField(
+            style: TextStyle(color: Colors.black),
             controller: controller,
             enabled: false,
             decoration: InputDecoration(

@@ -12,9 +12,15 @@ class TurnoverSearchScreen extends StatefulWidget {
 class _TurnoverSearchScreenState extends State<TurnoverSearchScreen> {
   // List of turnover options
   final List<String> turnoverOptions = [
-    'Less than \$1M',
-    '\$1M - \$10M',
-    'More than \$10M',
+    '1 drum',
+    '2 drum',
+    '3 drum',
+    '4 drum',
+    '5 drum',
+    '6 drum',
+    '7 drum',
+    '8 drum',
+    '9 drum',
   ];
 
   // List of filtered turnover options based on search
@@ -58,7 +64,18 @@ class _TurnoverSearchScreenState extends State<TurnoverSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select Turnover'),
+        leading: IconButton(
+          style: IconButton.styleFrom(overlayColor: Colors.transparent),
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text(
+          '조건 입력',
+          style: TextStyle(
+              fontSize: 18.0, color: Colors.black, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Column(
         children: [
@@ -67,9 +84,26 @@ class _TurnoverSearchScreenState extends State<TurnoverSearchScreen> {
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
-                labelText: 'Search Turnover',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search),
+                hintText: "입력해주세요",
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.grey.shade500,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() {
+                      filteredOptions = [];
+                    });
+                  },
+                ),
+                fillColor: Colors.grey.shade100,
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(40.0),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),

@@ -63,7 +63,28 @@ class _ProjectNameSearchScreenState extends State<ProjectNameSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Search Projects")),
+      appBar: AppBar(
+        leading: IconButton(
+          style: IconButton.styleFrom(overlayColor: Colors.transparent),
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            Navigator.pop(context); // Go back to the previous screen
+          },
+        ),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.0),
+          child: RichText(
+            text: const TextSpan(
+              text: '프로젝트명 입력',
+              style: TextStyle(
+                fontSize: 18.0, // Main title size
+                color: Colors.black, // AppBar text color
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Column(
         children: [
           // Search field at the top
@@ -74,10 +95,26 @@ class _ProjectNameSearchScreenState extends State<ProjectNameSearchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+
                     decoration: InputDecoration(
-                      labelText: "Search Project",
-                      border: OutlineInputBorder(),
+                      hintText: "입력해주세요",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(40.0),
+                          borderSide: BorderSide.none),
+                      fillColor: Colors.grey.shade100,
+                      filled: true,
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey.shade500,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      ),
                     ),
+
                     onChanged: onSearchChanged, // Update search term on change
                     onSubmitted: (value) {
                       widget

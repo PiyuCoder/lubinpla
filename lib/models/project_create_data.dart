@@ -1,39 +1,47 @@
+import 'dart:ffi';
+
 class SectionData {
   String projectName;
-  String owner;
+  Map<String, String>? owner;
   Map<String, String>?
       collaborator; // Single collaborator with name and profilePic
   List<Map<String, String>> share; // List of users with name and profilePic
   String industry;
   String category;
   String attribute;
+  List<Map<String, String>>
+      extraFields; // List of subcategory data (key-value pairs)
+  List<Condition> conditions;
   String turningrate;
-  List<Product> products; // List of products
+  List<Product> products;
 
-  // Constructor with defaults and optional parameters
   SectionData({
     this.projectName = '',
-    this.owner = '',
-    this.collaborator, // Can be null
-    this.share = const [], // Default empty list for share
+    this.owner,
+    this.collaborator,
+    this.share = const [],
     this.industry = '',
     this.category = '',
     this.attribute = '',
+    this.extraFields = const [],
+    List<Condition>? conditions,
     this.turningrate = '',
-    this.products = const [], // Default empty list for products
-  });
+    this.products = const [],
+  }) : conditions = conditions ?? [];
 
-  // copyWith method to create a copy with updated values
   SectionData copyWith({
     String? projectName,
-    String? owner,
-    Map<String, String>? collaborator, // Accept single collaborator
+    Map<String, String>? owner,
+    Map<String, String>? collaborator,
     List<Map<String, String>>? share,
     String? industry,
     String? category,
     String? attribute,
+    List<Map<String, String>>?
+        extraFields, // Fixed the missing `?` and added comma
+    List<Condition>? conditions,
     String? turningrate,
-    List<Product>? products, // Accept multiple products
+    List<Product>? products,
   }) {
     return SectionData(
       projectName: projectName ?? this.projectName,
@@ -43,8 +51,11 @@ class SectionData {
       industry: industry ?? this.industry,
       category: category ?? this.category,
       attribute: attribute ?? this.attribute,
+      extraFields:
+          extraFields ?? this.extraFields, // Update extraFields if passed
+      conditions: conditions ?? this.conditions,
       turningrate: turningrate ?? this.turningrate,
-      products: products ?? this.products, // Use multiple products
+      products: products ?? this.products,
     );
   }
 }
@@ -66,19 +77,27 @@ class Product {
   }
 }
 
-class TurningRate {
+class Condition {
   String condition;
   String explaination;
-  String detail;
+  String? detail;
+  bool required;
+  bool newCondition;
+  Map<String, dynamic>? edited;
+  String? id;
 
-  TurningRate({
+  Condition({
     required this.condition,
     required this.explaination,
-    required this.detail,
+    this.detail,
+    required this.required,
+    this.newCondition = false,
+    this.edited,
+    this.id,
   });
 
   @override
   String toString() {
-    return 'Product(name: $condition, usageAmount: $explaination, date: $detail)';
+    return 'Condition(condition: $condition, explaination: $explaination, detail: $detail)';
   }
 }
